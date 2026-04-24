@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ルーティン → カレンダー</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0eb;
+    --surface: #fffdf9;
+    --ink: #1a1410;
+    --muted: #8a7f74;
+    --accent: #c4734a;
+    --accent-light: #f0d5c5;
+    --border: #e0d8d0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container { max-width: 480px; margin: 0 auto; }
+
+  header { margin-bottom: 2.5rem; }
+
+  .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  h1 { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  /* Group card */
+  .group-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .group-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .group-dot:hover { transform: scale(1.3); }
+
+  .group-name-input {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    text-transform: uppercase;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--border);
+    outline: none;
+    width: 100%;
+    padding-bottom: 0.1rem;
+  }
+  .group-name-input:focus { border-bottom-color: var(--accent); color: var(--ink); }
+
+  .remove-group-btn {
+    background: none;
+    border: none;
+    color: var(--border);
+    font-size: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .remove-group-btn:hover { color: var(--accent); }
+
+  /* Steps */
+  .steps-list { margin-bottom: 0.75rem; }
+
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.15s ease;
+  }
+  .step-item:last-child { border-bottom: none; }
+
+  .step-item input[type="checkbox"] {
+    width: 15px; height: 15px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .step-name-input {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 0.88rem;
+    background: transparent;
+    border: none;
+    outline: none;
+    flex: 1;
+    color: var(--ink);
+    min-width: 0;
+  }
+  .step-name-input:focus { border-bottom: 1px solid var(--accent); }
+
+  .remove-step-btn {
+    background: none;
+    border: none;
+    color: var(--border);
+    font-size: 0.85rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .remove-step-btn:hover { color: var(--accent); }
+
+  /* Add step row */
+  .add-step-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .add-step-row input[type="text"] {
+    flex: 1;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    color: var(--ink);
+    outline: none;
+  }
+  .add-step-row input[type="text"]:focus { border-color: var(--accent); }
+
+  /* Time row */
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .time-row label { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+
+  .time-row input[type="time"] {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 0.28rem 0.5rem;
+    color: var(--ink);
+    outline: none;
+  }
+  .time-row input[type="time"]:focus { border-color: var(--accent); }
+
+  /* Buttons */
+  .btn-small {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .btn-small:hover { opacity: 0.82; }
+
+  .btn-add-group {
+    width: 100%;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    transition: border-color 0.15s, color 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .btn-add-group:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-main {
+    width: 100%;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem;
+    cursor: pointer;
+    margin-top: 0.25rem;
+    transition: background 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .btn-main:hover { background: var(--accent); }
+
+  /* Color picker popup */
+  .color-picker-row {
+    display: none;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  .color-picker-row.open { display: flex; }
+
+  .color-swatch {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.1s, transform 0.1s;
+  }
+  .color-swatch:hover, .color-swatch.selected { border-color: var(--ink); transform: scale(1.15); }
+
+  /* Output */
+  .links-section { margin-top: 1.5rem; display: none; }
+  .links-section.visible { display: block; }
+
+  .link-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .link-card-info { flex: 1; min-width: 0; }
+
+  .link-card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .link-card-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .btn-open {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: none;
+    border-radius: 7px;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-open:hover { background: var(--accent); color: white; }
+
+  .note {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.75rem;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="label">routine planner</div>
+    <h1>ルーティンを<br><span>カレンダーへ</span></h1>
+    <p class="subtitle">グループを自由に作って、Googleカレンダーに追加。</p>
+  </header>
+
+  <div id="groups-container"></div>
+
+  <button class="btn-add-group" onclick="addGroup()">＋ グループを追加</button>
+
+  <button class="btn-main" onclick="generate()">📅　カレンダーリンクを生成</button>
+
+  <div class="links-section" id="links-out">
+    <div class="label" style="margin-bottom:0.75rem">生成されたリンク</div>
+    <div id="links-list"></div>
+    <p class="note">リンクを開くとGoogleカレンダーの追加画面が開きます。<br>毎日繰り返しに設定されています。</p>
+  </div>
+
+</div>
+
+<script>
+  const COLORS = ['#c4734a','#e8b86d','#7a9bb5','#88b599','#b57a9b','#9b9bb5','#b5a07a','#e07070'];
+  let groupCount = 0;
+
+  function addGroup(name = '', time = '08:00', color = null, steps = []) {
+    groupCount++;
+    const gid = 'g' + groupCount;
+    const chosenColor = color || COLORS[(groupCount - 1) % COLORS.length];
+
+    const container = document.getElementById('groups-container');
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.id = gid;
+
+    card.innerHTML = `
+      <div class="group-header">
+        <div class="group-dot" style="background:${chosenColor}" title="色を変える" onclick="toggleColorPicker('${gid}')"></div>
+        <input class="group-name-input" type="text" placeholder="グループ名（例：朝ルーティン）" value="${name}">
+        <button class="remove-group-btn" onclick="removeGroup('${gid}')">×</button>
+      </div>
+      <div class="color-picker-row" id="cp-${gid}">
+        ${COLORS.map(c => `<div class="color-swatch ${c === chosenColor ? 'selected' : ''}" style="background:${c}" onclick="setColor('${gid}','${c}')"></div>`).join('')}
+      </div>
+      <div class="steps-list" id="steps-${gid}"></div>
+      <div class="add-step-row">
+        <input type="text" placeholder="ステップを追加…" id="step-input-${gid}" maxlength="40"
+          onkeydown="if(event.key==='Enter') addStep('${gid}')">
+        <button class="btn-small" onclick="addStep('${gid}')">追加</button>
+      </div>
+      <div class="time-row">
+        <label>時間</label>
+        <input type="time" id="time-${gid}" value="${time}">
+      </div>
+    `;
+
+    container.appendChild(card);
+
+    steps.forEach(s => addStep(gid, s));
+  }
+
+  function removeGroup(gid) {
+    const el = document.getElementById(gid);
+    if (el) el.remove();
+  }
+
+  function toggleColorPicker(gid) {
+    const cp = document.getElementById('cp-' + gid);
+    cp.classList.toggle('open');
+  }
+
+  function setColor(gid, color) {
+    const card = document.getElementById(gid);
+    card.querySelector('.group-dot').style.background = color;
+    card.querySelectorAll('.color-swatch').forEach(s => {
+      s.classList.toggle('selected', s.style.background === color || s.style.backgroundColor === color);
+    });
+    document.getElementById('cp-' + gid).classList.remove('open');
+  }
+
+  let stepCount = 0;
+  function addStep(gid, name = '') {
+    const inputEl = document.getElementById('step-input-' + gid);
+    const stepName = name || (inputEl ? inputEl.value.trim() : '');
+    if (!stepName) return;
+
+    stepCount++;
+    const sid = 's' + stepCount;
+    const list = document.getElementById('steps-' + gid);
+
+    const div = document.createElement('div');
+    div.className = 'step-item';
+    div.id = sid;
+    div.innerHTML = `
+      <input type="checkbox" id="cb-${sid}" checked>
+      <input class="step-name-input" type="text" value="${stepName}" id="name-${sid}">
+      <button class="remove-step-btn" onclick="removeStep('${sid}')">×</button>
+    `;
+    list.appendChild(div);
+
+    if (inputEl) inputEl.value = '';
+  }
+
+  function removeStep(sid) {
+    const el = document.getElementById(sid);
+    if (el) el.remove();
+  }
+
+  function makeGCalUrl(title, time, description) {
+    const now = new Date();
+    const [h, m] = time.split(':').map(Number);
+    const start = new Date(now);
+    start.setDate(start.getDate() + 1);
+    start.setHours(h, m, 0, 0);
+    const end = new Date(start);
+    end.setMinutes(end.getMinutes() + 10);
+    const fmt = d => d.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: title,
+      dates: `${fmt(start)}/${fmt(end)}`,
+      details: description,
+      recur: 'RRULE:FREQ=DAILY'
+    });
+    return `https://calendar.google.com/calendar/render?${params}`;
+  }
+
+  function generate() {
+    const cards = document.querySelectorAll('.group-card');
+    const entries = [];
+
+    cards.forEach(card => {
+      const gid = card.id;
+      const nameInput = card.querySelector('.group-name-input');
+      const groupName = nameInput ? nameInput.value.trim() || 'ルーティン' : 'ルーティン';
+      const timeInput = card.querySelector('input[type="time"]');
+      const time = timeInput ? timeInput.value : '08:00';
+      const dot = card.querySelector('.group-dot');
+      const color = dot ? dot.style.background : '#c4734a';
+
+      const stepItems = card.querySelectorAll('.step-item');
+      const checkedSteps = [];
+      stepItems.forEach(item => {
+        const cb = item.querySelector('input[type="checkbox"]');
+        const nameEl = item.querySelector('.step-name-input');
+        if (cb && cb.checked && nameEl && nameEl.value.trim()) {
+          checkedSteps.push(nameEl.value.trim());
+        }
+      });
+
+      if (checkedSteps.length > 0) {
+        entries.push({ title: groupName, time, desc: checkedSteps.join(' → '), color });
+      }
+    });
+
+    if (entries.length === 0) {
+      alert('ステップを1つ以上チェックしてください。');
+      return;
+    }
+
+    const list = document.getElementById('links-list');
+    list.innerHTML = '';
+
+    entries.forEach(e => {
+      const url = makeGCalUrl(e.title, e.time, e.desc);
+      const card = document.createElement('div');
+      card.className = 'link-card';
+      card.innerHTML = `
+        <div style="width:8px;height:8px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
+        <div class="link-card-info">
+          <div class="link-card-title">${e.title}</div>
+          <div class="link-card-sub">${e.time} · 毎日 · ${e.desc}</div>
+        </div>
+        <a class="btn-open" href="${url}" target="_blank" rel="noopener">開く</a>
+      `;
+      list.appendChild(card);
+    });
+
+    document.getElementById('links-out').classList.add('visible');
+    document.getElementById('links-out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Default groups
+  addGroup('朝ルーティン', '07:30', '#e8b86d', ['泡洗顔', 'ハトムギ化粧水', 'ニベアサン（日焼け止め）']);
+  addGroup('夜ルーティン', '22:00', '#7a9bb5', ['クレンジングオイル', 'ハトムギ化粧水']);
+</script>
+</body>
+</html>
